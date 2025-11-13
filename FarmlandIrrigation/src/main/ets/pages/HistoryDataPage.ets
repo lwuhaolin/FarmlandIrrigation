@@ -87,8 +87,9 @@ export default struct HistoryDataPage {
     if (this.historyData.length === 0) return;
 
     const dataKey = this.dataKeys[this.selectedTab] as keyof HistoryDataPoint;
-    const chartWidth = 300;
-    const chartHeight = 200;
+    const chartWidth = 280; // 设定固定宽度与Canvas对应
+    const chartHeight = 180;
+    const padding = 20;
 
     // 计算数值范围
     const values = this.historyData.map(item => {
@@ -109,6 +110,11 @@ export default struct HistoryDataPage {
     const maxValue = Math.max(...values);
     const valueRange = maxValue - minValue || 1;
 
+    // 添加一些边距以避免点贴边
+    const displayMin = minValue - valueRange * 0.1;
+    const displayMax = maxValue + valueRange * 0.1;
+    const displayRange = displayMax - displayMin;
+
     this.chartData = this.historyData.map((item, index) => {
       let value: number;
       switch (dataKey) {
@@ -128,9 +134,12 @@ export default struct HistoryDataPage {
           value = 0;
       }
 
-      const x = (index / (this.historyData.length - 1)) * chartWidth;
-      const normalizedValue = (value - minValue) / valueRange;
-      const y = chartHeight - (normalizedValue * chartHeight);
+      // 计算x位置（添加左边距）
+      const x = padding + (index / Math.max(this.historyData.length - 1, 1)) * (chartWidth - 2 * padding);
+      // 计算y位置（添加上下边距，y轴从上到下）
+      const normalizedValue = (value - displayMin) / displayRange;
+      const y = chartHeight - padding - (normalizedValue * (chartHeight - 2 * padding));
+
       const chartPoint: ChartPoint = {
         x,
         y,
@@ -182,10 +191,13 @@ export default struct HistoryDataPage {
     Column() {
       // 顶部导航
       Row() {
-        Button('返回')
+        Button('← 返回')
           .onClick(() => router.back())
           .backgroundColor('#4CAF50')
           .fontColor(Color.White)
+          .borderRadius(20)
+          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+          .fontSize(14)
           .margin({ right: 16 })
 
         Text('历史数据分析')
@@ -193,158 +205,219 @@ export default struct HistoryDataPage {
           .fontWeight(FontWeight.Bold)
           .flexGrow(1)
 
-        Button('导出')
+        Button('📊 导出')
           .onClick(() => this.exportData())
           .backgroundColor('#2196F3')
           .fontColor(Color.White)
+          .borderRadius(20)
+          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+          .fontSize(14)
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 16, bottom: 16 })
-      .backgroundColor('#F5F5F5')
+      .backgroundColor('#FFFFFF')
+      .shadow({ radius: 8, color: '#00000010', offsetY: 2 })
 
       Scroll() {
 
         Column() {
           // 时间范围选择
           Row() {
-            Text('时间范围：')
+            Text('📅 时间范围')
               .fontSize(16)
+              .fontWeight(FontWeight.Medium)
               .margin({ right: 16 })
 
-            Button('按日')
+            Button('📆 按日')
               .onClick(() => this.switchTimeRange('day'))
-              .backgroundColor(this.timeRange === 'day' ? '#4CAF50' : '#E0E0E0')
-              .fontColor(this.timeRange === 'day' ? Color.White : Color.Black)
-              .margin({ right: 8 })
+              .backgroundColor(this.timeRange === 'day' ? '#4CAF50' : '#F5F5F5')
+              .fontColor(this.timeRange === 'day' ? Color.White : '#666666')
+              .borderRadius(18)
+              .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+              .fontSize(14)
+              .margin({ right: 12 })
+              .shadow(this.timeRange === 'day' ?
+                { radius: 8, color: '#4CAF5030', offsetY: 2 } :
+                { radius: 0, color: Color.Transparent, offsetY: 0 })
 
-            Button('按周')
+            Button('📊 按周')
               .onClick(() => this.switchTimeRange('week'))
-              .backgroundColor(this.timeRange === 'week' ? '#4CAF50' : '#E0E0E0')
-              .fontColor(this.timeRange === 'week' ? Color.White : Color.Black)
+              .backgroundColor(this.timeRange === 'week' ? '#4CAF50' : '#F5F5F5')
+              .fontColor(this.timeRange === 'week' ? Color.White : '#666666')
+              .borderRadius(18)
+              .padding({ left: 20, right: 20, top: 8, bottom: 8 })
+              .fontSize(14)
+              .shadow(this.timeRange === 'week' ?
+                { radius: 8, color: '#4CAF5030', offsetY: 2 } :
+                { radius: 0, color: Color.Transparent, offsetY: 0 })
           }
           .width('100%')
           .padding(16)
+          .backgroundColor(Color.White)
+          .borderRadius(12)
+          .margin({ left: 16, right: 16, top: 16 })
+          .shadow({ radius: 4, color: '#00000008', offsetY: 1 })
 
           // 数据类型选择标签
           Row() {
             ForEach(this.dataTypes, (type: string, index: number) => {
               Button(type)
                 .onClick(() => this.switchDataType(index))
-                .backgroundColor(this.selectedTab === index ? '#4CAF50' : '#E0E0E0')
-                .fontColor(this.selectedTab === index ? Color.White : Color.Black)
+                .backgroundColor(this.selectedTab === index ? '#4CAF50' : '#F5F5F5')
+                .fontColor(this.selectedTab === index ? Color.White : '#666666')
+                .borderRadius(16)
+                .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+                .fontSize(13)
                 .margin({ right: 8 })
-                .fontSize(14)
+                .shadow(this.selectedTab === index ?
+                  { radius: 6, color: '#4CAF5028', offsetY: 2 } :
+                  { radius: 0, color: Color.Transparent, offsetY: 0 })
             })
           }
           .width('100%')
-          .padding({ left: 16, right: 16, bottom: 16 })
+          .padding(16)
+          .backgroundColor(Color.White)
+          .borderRadius(12)
+          .margin({ left: 16, right: 16, top: 12 })
+          .shadow({ radius: 4, color: '#00000008', offsetY: 1 })
 
           // 图表区域
           Column() {
-            Text(`${this.dataTypes[this.selectedTab]}趋势图`)
+            Text(`📈 ${this.dataTypes[this.selectedTab]}趋势图`)
               .fontSize(18)
               .fontWeight(FontWeight.Bold)
-              .margin({ bottom: 16 })
+              .margin({ bottom: 20 })
 
             if (this.isLoading) {
               LoadingProgress()
                 .width(50)
                 .height(50)
                 .margin(32)
+                .color('#4CAF50')
             } else {
-              // 简化的折线图实现
+              // 改进的折线图实现
               Stack() {
                 // 背景网格
                 Column() {
                   ForEach([0, 1, 2, 3, 4], (item: number) => {
                     Divider()
                       .strokeWidth(1)
-                      .color('#E0E0E0')
+                      .color('#E8E8E8')
                       .margin({ top: item === 0 ? 0 : 40 })
                   })
                 }
-                .width(300)
+                .width('90%')
                 .height(200)
                 .alignItems(HorizontalAlign.Start)
 
-                // 数据点和连线
+                // Canvas图表
                 if (this.chartData.length > 0) {
-                  Canvas(this.drawChart.bind(this))
-                    .width(300)
-                    .height(200)
+                  Stack() {
+                    Canvas(this.drawChart.bind(this))
+                      .width('90%')
+                      .height(200)
+                      .backgroundColor(Color.Transparent)
+                      .onReady(() => {
+                        // Canvas准备就绪，触发绘制
+                        console.log('Canvas ready')
+                      })
+                  }
+                  .width('100%')
+                  .height(200)
                 }
               }
-              .width(300)
-              .height(200)
+              .width('100%')
+              .height(220)
+              .padding(16)
               .backgroundColor('#FAFAFA')
-              .border({ width: 1, color: '#E0E0E0' })
+              .borderRadius(12)
+              .border({ width: 1, color: '#E8E8E8' })
 
               // 数据统计信息
               Column() {
-                Text('统计信息')
+                Text('📊 统计信息')
                   .fontSize(16)
                   .fontWeight(FontWeight.Bold)
-                  .margin({ bottom: 8 })
+                  .margin({ bottom: 16 })
 
                 if (this.chartData.length > 0) {
                   Row() {
                     Column() {
-                      Text('最大值')
+                      Text('📈 最大值')
                         .fontSize(12)
-                        .fontColor('#666')
+                        .fontColor('#999')
+                        .margin({ bottom: 4 })
                       Text(`${Math.max(...this.chartData.map(p => p.value)).toFixed(1)}`)
-                        .fontSize(16)
+                        .fontSize(20)
                         .fontWeight(FontWeight.Bold)
                         .fontColor('#4CAF50')
                     }
-                    .margin({ right: 24 })
+                    .width('33%')
+                    .padding(12)
+                    .backgroundColor('#F0F9F0')
+                    .borderRadius(12)
+                    .alignItems(HorizontalAlign.Center)
 
                     Column() {
-                      Text('最小值')
+                      Text('📉 最小值')
                         .fontSize(12)
-                        .fontColor('#666')
+                        .fontColor('#999')
+                        .margin({ bottom: 4 })
                       Text(`${Math.min(...this.chartData.map(p => p.value)).toFixed(1)}`)
-                        .fontSize(16)
+                        .fontSize(20)
                         .fontWeight(FontWeight.Bold)
                         .fontColor('#FF5722')
                     }
-                    .margin({ right: 24 })
+                    .width('33%')
+                    .padding(12)
+                    .backgroundColor('#FFF3F0')
+                    .borderRadius(12)
+                    .alignItems(HorizontalAlign.Center)
+                    .margin({ left: 8, right: 8 })
 
                     Column() {
-                      Text('平均值')
+                      Text('➗ 平均值')
                         .fontSize(12)
-                        .fontColor('#666')
+                        .fontColor('#999')
+                        .margin({ bottom: 4 })
                       Text(`${(this.chartData.reduce((sum, p) => sum + p.value, 0) / this.chartData.length).toFixed(1)}`)
-                        .fontSize(16)
+                        .fontSize(20)
                         .fontWeight(FontWeight.Bold)
                         .fontColor('#2196F3')
                     }
+                    .width('33%')
+                    .padding(12)
+                    .backgroundColor('#F0F7FF')
+                    .borderRadius(12)
+                    .alignItems(HorizontalAlign.Center)
                   }
-                  .justifyContent(FlexAlign.SpaceAround)
+                  .justifyContent(FlexAlign.SpaceBetween)
                   .width('100%')
                 }
               }
               .width('100%')
               .padding(16)
               .backgroundColor(Color.White)
-              .borderRadius(8)
+              .borderRadius(12)
               .margin({ top: 16 })
+              .shadow({ radius: 4, color: '#00000008', offsetY: 1 })
             }
           }
           .width('100%')
-          .padding(16)
+          .padding(20)
           .backgroundColor(Color.White)
-          .borderRadius(8)
+          .borderRadius(12)
           .margin(16)
+          .shadow({ radius: 8, color: '#00000010', offsetY: 2 })
 
           // 详细数据列表
           Column() {
-            Text('详细数据记录')
+            Text('📋 详细数据记录')
               .fontSize(18)
               .fontWeight(FontWeight.Bold)
               .margin({ bottom: 16 })
 
-            List({ space: 8 }) {
+            List({ space: 12 }) {
               ForEach(this.historyData.slice().reverse(), (item: HistoryDataPoint, index: number) => {
                 ListItem() {
                   Row() {
@@ -352,9 +425,11 @@ export default struct HistoryDataPage {
                       Text(this.formatTime(item.timestamp))
                         .fontSize(14)
                         .fontWeight(FontWeight.Bold)
+                        .fontColor('#333')
                       Text(new Date(item.timestamp).toLocaleDateString())
-                        .fontSize(12)
-                        .fontColor('#666')
+                        .fontSize(11)
+                        .fontColor('#999')
+                        .margin({ top: 2 })
                     }
                     .alignItems(HorizontalAlign.Start)
                     .width('25%')
@@ -362,43 +437,56 @@ export default struct HistoryDataPage {
                     Column() {
                       Text(`${item.soilMoisture.toFixed(1)}%`)
                         .fontSize(14)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor('#4CAF50')
                       Text('土壤湿度')
-                        .fontSize(12)
-                        .fontColor('#666')
+                        .fontSize(11)
+                        .fontColor('#999')
+                        .margin({ top: 2 })
                     }
                     .width('18%')
 
                     Column() {
                       Text(`${item.temperature.toFixed(1)}°C`)
                         .fontSize(14)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor('#FF9800')
                       Text('温度')
-                        .fontSize(12)
-                        .fontColor('#666')
+                        .fontSize(11)
+                        .fontColor('#999')
+                        .margin({ top: 2 })
                     }
                     .width('18%')
 
                     Column() {
                       Text(`${item.humidity.toFixed(1)}%`)
                         .fontSize(14)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor('#2196F3')
                       Text('湿度')
-                        .fontSize(12)
-                        .fontColor('#666')
+                        .fontSize(11)
+                        .fontColor('#999')
+                        .margin({ top: 2 })
                     }
                     .width('18%')
 
                     Column() {
                       Text(`${item.lightIntensity.toFixed(0)}`)
                         .fontSize(14)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor('#FFC107')
                       Text('光照')
-                        .fontSize(12)
-                        .fontColor('#666')
+                        .fontSize(11)
+                        .fontColor('#999')
+                        .margin({ top: 2 })
                     }
                     .width('21%')
                   }
                   .width('100%')
-                  .padding(12)
+                  .padding(16)
                   .backgroundColor(Color.White)
-                  .borderRadius(8)
+                  .borderRadius(12)
+                  .shadow({ radius: 4, color: '#00000006', offsetY: 1 })
                 }
               })
             }
@@ -408,8 +496,9 @@ export default struct HistoryDataPage {
           .width('100%')
           .padding(16)
           .backgroundColor('#F9F9F9')
-          .borderRadius(8)
+          .borderRadius(12)
           .margin({ left: 16, right: 16, bottom: 16 })
+          .shadow({ radius: 8, color: '#00000010', offsetY: 2 })
         }
       }
       .layoutWeight(1)
@@ -423,13 +512,42 @@ export default struct HistoryDataPage {
   private drawChart(context: CanvasRenderingContext2D) {
     if (this.chartData.length === 0) return;
 
-    context.clearRect(0, 0, 300, 200);
-    
-    // 绘制折线
+    const chartWidth = 280;
+    const chartHeight = 180;
+
+    // 清空画布
+    context.clearRect(0, 0, chartWidth, chartHeight);
+
+    // 绘制渐变背景区域
+    context.save();
+    context.beginPath();
+    context.moveTo(this.chartData[0].x, chartHeight - 20);
+
+    // 绘制到每个数据点
+    this.chartData.forEach(point => {
+      context.lineTo(point.x, point.y);
+    });
+
+    // 完成底部区域
+    context.lineTo(this.chartData[this.chartData.length - 1].x, chartHeight - 20);
+    context.closePath();
+
+    // 创建渐变
+    const gradient = context.createLinearGradient(0, 0, 0, chartHeight);
+    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.3)');
+    gradient.addColorStop(1, 'rgba(76, 175, 80, 0.05)');
+    context.fillStyle = gradient;
+    context.fill();
+    context.restore();
+
+    // 绘制主折线
+    context.save();
     context.beginPath();
     context.strokeStyle = '#4CAF50';
-    context.lineWidth = 2;
-    
+    context.lineWidth = 3;
+    context.lineJoin = 'round';
+    context.lineCap = 'round';
+
     this.chartData.forEach((point, index) => {
       if (index === 0) {
         context.moveTo(point.x, point.y);
@@ -437,15 +555,44 @@ export default struct HistoryDataPage {
         context.lineTo(point.x, point.y);
       }
     });
-    
+
     context.stroke();
-    
+    context.restore();
+
     // 绘制数据点
-    context.fillStyle = '#4CAF50';
     this.chartData.forEach(point => {
+      // 外圈（白色边框）
+      context.save();
+      context.beginPath();
+      context.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+      context.fillStyle = '#FFFFFF';
+      context.fill();
+      context.restore();
+
+      // 内圈（绿色）
+      context.save();
       context.beginPath();
       context.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+      context.fillStyle = '#4CAF50';
       context.fill();
+      context.restore();
     });
+
+    // 绘制时间标签（仅显示首尾）
+    context.save();
+    context.fillStyle = '#999';
+    context.font = '10px sans-serif';
+
+    // 第一个标签
+    if (this.chartData.length > 0) {
+      const firstPoint = this.chartData[0];
+      context.fillText(firstPoint.time, firstPoint.x - 15, chartHeight - 5);
+
+      // 最后一个标签
+      const lastPoint = this.chartData[this.chartData.length - 1];
+      context.fillText(lastPoint.time, lastPoint.x - 15, chartHeight - 5);
+    }
+
+    context.restore();
   }
 }

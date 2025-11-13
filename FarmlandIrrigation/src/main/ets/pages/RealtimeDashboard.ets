@@ -1,3 +1,5 @@
+import { router } from '@kit.ArkUI';
+
 @Component
 export default struct RealtimeDashboard {
   @State soilHumidity: number = 45.5; // 土壤湿度
@@ -6,6 +8,9 @@ export default struct RealtimeDashboard {
   @State lightIntensity: number = 32500; // 光照强度(lux)
   @State deviceStatus: string = '正常'; // 设备状态
   @State lastUpdateTime: string = '2024-03-15 14:30:25'; // 最后更新时间
+  
+  // 父组件传递的跳转回调
+  onNavigateToIrrigation?: () => void;
 
   // 定时器用于模拟实时数据更新
   private timer: number = -1;
@@ -142,8 +147,11 @@ export default struct RealtimeDashboard {
             .layoutWeight(1)
             .backgroundColor('#52C41A')
             .onClick(() => {
-              // 跳转到灌溉设置页面
-              console.log('跳转到灌溉控制');
+              if (this.onNavigateToIrrigation) {
+                this.onNavigateToIrrigation();
+              } else {
+                console.log('跳转到灌溉控制');
+              }
             })
         }
         .width('100%')
@@ -185,36 +193,45 @@ export default struct RealtimeDashboard {
   @Builder
   DetailItem(label: string, value: string, status: string) {
     Row() {
-      Text(label)
-        .fontSize(16)
-        .fontColor('#1F2329')
-        .layoutWeight(1)
-
-      Text(value)
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#1F2329')
-        .margin({ right: 12 })
+      Column() {
+        Text(label)
+          .fontSize(14)
+          .fontColor('#666666')
+          .margin({ bottom: 4 })
+        
+        Text(value)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1F2329')
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
 
       Text(status)
-        .fontSize(14)
+        .fontSize(12)
         .fontColor(status === '正常' ? '#52C41A' : 
                   status === '偏低' || status === '偏高' ? '#FAAD14' : '#FF4D4F')
-        .padding({ top: 8, bottom: 8, left: 4, right: 4 })
+        .padding({ top: 6, bottom: 6, left: 12, right: 12 })
         .backgroundColor(status === '正常' ? '#F6FFED' : 
                         status === '偏低' || status === '偏高' ? '#FFFBE6' : '#FFF2F0')
-        .borderRadius(4)
+        .borderRadius(16)
+        .border({
+          width: 1,
+          color: status === '正常' ? '#B7EB8F' : 
+                status === '偏低' || status === '偏高' ? '#FFD591' : '#FFADD2'
+        })
     }
     .width('100%')
-    .height(48)
-    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+    .padding(16)
     .backgroundColor('#FFFFFF')
-    .borderRadius(8)
+    .borderRadius(12)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center)
     .shadow({
-      radius: 4,
-      color: '#00000008',
+      radius: 8,
+      color: '#00000010',
       offsetX: 0,
-      offsetY: 1
+      offsetY: 2
     })
   }
 

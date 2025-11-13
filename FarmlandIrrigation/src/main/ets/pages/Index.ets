@@ -81,13 +81,17 @@ struct Index {
   @Builder
   RenderCurrentPage() {
     if (this.currentIndex === 0) {
-      RealtimeDashboard()
+      RealtimeDashboard({ onNavigateToIrrigation: () => {
+        this.currentIndex = 3; // 跳转到灌溉设置页面（索引3）
+      }})
     } else if (this.currentIndex === 1) {
       HistoryData()
     } else if (this.currentIndex === 2) {
       CropStageManagePage()
     } else if (this.currentIndex === 3) {
-      IrrigationStrategyPage()
+      IrrigationStrategyPage({ onNavigateBack: () => {
+        this.currentIndex = 0; // 返回到实时监控页面（索引0）
+      }})
     } else if (this.currentIndex === 4) {
       CostStatistics()
     } else if (this.currentIndex === 5) {
