@@ -303,27 +303,27 @@ export default struct HistoryDataPage {
                     Divider()
                       .strokeWidth(1)
                       .color('#E8E8E8')
-                      .margin({ top: item === 0 ? 0 : 40 })
+                      .margin({ top: item === 0 ? 0 : 36 })
                   })
                 }
-                .width('90%')
-                .height(200)
+                .width(280)
+                .height(180)
                 .alignItems(HorizontalAlign.Start)
 
                 // Canvas图表
                 if (this.chartData.length > 0) {
                   Stack() {
                     Canvas(this.drawChart.bind(this))
-                      .width('90%')
-                      .height(200)
+                      .width(280)
+                      .height(180)
                       .backgroundColor(Color.Transparent)
                       .onReady(() => {
                         // Canvas准备就绪，触发绘制
-                        console.log('Canvas ready')
+                        console.log('Canvas ready, data points:', this.chartData.length)
                       })
                   }
-                  .width('100%')
-                  .height(200)
+                  .width(280)
+                  .height(180)
                 }
               }
               .width('100%')
@@ -332,6 +332,7 @@ export default struct HistoryDataPage {
               .backgroundColor('#FAFAFA')
               .borderRadius(12)
               .border({ width: 1, color: '#E8E8E8' })
+              // .justifyContent(FlexAlign.Center)
 
               // 数据统计信息
               Column() {
