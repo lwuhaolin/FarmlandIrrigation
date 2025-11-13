@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "FarmlandIrrigationAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "FarmlandIrrigationAbility_label",
+      "value": "label"
+    }
+  ]
+}

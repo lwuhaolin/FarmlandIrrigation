@@ -1,0 +1,751 @@
+// 作物数据类型定义
+interface Crop {
+  id: string;
+  name: string;
+  variety: string;
+  plantingDate: string;
+  expectedHarvestDate: string;
+  currentStage: string;
+  progress: number;
+  area: number;
+  status: 'healthy' | 'attention' | 'critical';
+  location: string;
+  lastUpdated: string;
+}
+
+// 作物阶段定义
+interface CropStage {
+  name: string;
+  duration: number;
+  description: string;
+  requirements: string[];
+  icon: string;
+}
+
+// 种植计划数据
+interface PlantingPlan {
+  id: string;
+  cropName: string;
+  variety: string;
+  area: number;
+  plannedDate: string;
+  expectedHarvest: string;
+  notes: string;
+}
+
+
+interface CropType {
+  name: string;
+  varieties: string[];
+  stages: CropStage[];
+  totalDays: number;
+}
+@Component
+export default struct CropStageManagePage {
+  @State currentTab: number = 0;
+  @State crops: Crop[] = [];
+  @State plantingPlans: PlantingPlan[] = [];
+  @State selectedCrop: Crop | null = null;
+  @State showAddDialog: boolean = false;
+  @State showPlanDialog: boolean = false;
+  @State searchText: string = '';
+  @State filterStatus: string = 'all';
+  @State isLoading: boolean = false;
+  @State lastRefresh: string = '';
+
+  // 作物类型配置
+  private readonly cropTypes: CropType[]  = [
+    {
+      name: '水稻',
+      varieties: ['优质稻', '超级稻', '香米', '糯米'],
+      stages: [
+        { name: '播种', duration: 7, description: '种子萌发期', requirements: ['选种', '浸种', '催芽'], icon: '🌱' },
+        { name: '发芽', duration: 10, description: '幼苗出土期', requirements: ['保湿', '温控', '光照'], icon: '🌿' },
+        { name: '分蘖', duration: 25, description: '营养生长期', requirements: ['施肥', '灌水', '除草'], icon: '🌾' },
+        { name: '拔节', duration: 20, description: '茎秆伸长期', requirements: ['追肥', '控水', '防虫'], icon: '🎋' },
+        { name: '抽穗', duration: 15, description: '生殖生长期', requirements: ['充足水分', '防病'], icon: '🌾' },
+        { name: '灌浆', duration: 30, description: '籽粒充实期', requirements: ['适度干湿', '防倒伏'], icon: '🌾' },
+        { name: '成熟', duration: 15, description: '收获期', requirements: ['适时收割'], icon: '🌾' }
+      ],
+      totalDays: 122
+    },
+    {
+      name: '玉米',
+      varieties: ['甜玉米', '糯玉米', '饲料玉米', '爆裂玉米'],
+      stages: [
+        { name: '播种', duration: 5, description: '种子播种期', requirements: ['整地', '施底肥'], icon: '🌱' },
+        { name: '出苗', duration: 8, description: '幼苗期', requirements: ['保墒', '间苗'], icon: '🌿' },
+        { name: '拔节', duration: 30, description: '营养生长期', requirements: ['追肥', '培土'], icon: '🌽' },
+        { name: '抽雄', duration: 10, description: '雄穗期', requirements: ['充足水分'], icon: '🌽' },
+        { name: '吐丝', duration: 5, description: '雌穗期', requirements: ['授粉保护'], icon: '🌽' },
+        { name: '灌浆', duration: 35, description: '籽粒形成期', requirements: ['防虫害'], icon: '🌽' },
+        { name: '成熟', duration: 12, description: '收获期', requirements: ['适时收获'], icon: '🌽' }
+      ],
+      totalDays: 105
+    },
+    {
+      name: '小麦',
+      varieties: ['春小麦', '冬小麦', '硬质麦', '软质麦'],
+      stages: [
+        { name: '播种', duration: 7, description: '播种期', requirements: ['整地', '选种'], icon: '🌱' },
+        { name: '出苗', duration: 10, description: '出苗期', requirements: ['保墒', '除草'], icon: '🌿' },
+        { name: '分蘖', duration: 35, description: '分蘖期', requirements: ['追肥', '灌水'], icon: '🌾' },
+        { name: '拔节', duration: 25, description: '拔节期', requirements: ['防倒伏'], icon: '🌾' },
+        { name: '抽穗', duration: 12, description: '抽穗期', requirements: ['防病虫'], icon: '🌾' },
+        { name: '开花', duration: 8, description: '开花期', requirements: ['适宜温度'], icon: '🌾' },
+        { name: '灌浆', duration: 25, description: '灌浆期', requirements: ['充足水分'], icon: '🌾' },
+        { name: '成熟', duration: 15, description: '成熟期', requirements: ['适时收割'], icon: '🌾' }
+      ],
+      totalDays: 137
+    }
+  ];
+
+  aboutToAppear() {
+    this.initializeData();
+    this.loadCropData();
+  }
+
+  private initializeData(): void {
+    this.lastRefresh = new Date().toLocaleString();
+    this.generateMockData();
+  }
+
+  private generateMockData(): void {
+    this.crops = [
+      {
+        id: '1',
+        name: '水稻',
+        variety: '优质稻',
+        plantingDate: '2024-03-15',
+        expectedHarvestDate: '2024-07-15',
+        currentStage: '分蘖',
+        progress: 45,
+        area: 10.5,
+        status: 'healthy',
+        location: '东区田块A1',
+        lastUpdated: '2024-03-28 14:30'
+      },
+      {
+        id: '2',
+        name: '玉米',
+        variety: '甜玉米',
+        plantingDate: '2024-04-01',
+        expectedHarvestDate: '2024-07-20',
+        currentStage: '出苗',
+        progress: 20,
+        area: 8.2,
+        status: 'attention',
+        location: '西区田块B2',
+        lastUpdated: '2024-04-05 09:15'
+      },
+      {
+        id: '3',
+        name: '小麦',
+        variety: '冬小麦',
+        plantingDate: '2024-02-10',
+        expectedHarvestDate: '2024-06-25',
+        currentStage: '拔节',
+        progress: 65,
+        area: 15.0,
+        status: 'healthy',
+        location: '南区田块C3',
+        lastUpdated: '2024-04-01 16:45'
+      }
+    ];
+
+    this.plantingPlans = [
+      {
+        id: 'plan1',
+        cropName: '水稻',
+        variety: '香米',
+        area: 12.0,
+        plannedDate: '2024-04-20',
+        expectedHarvest: '2024-08-20',
+        notes: '计划在雨季前完成播种'
+      },
+      {
+        id: 'plan2',
+        cropName: '玉米',
+        variety: '糯玉米',
+        area: 6.5,
+        plannedDate: '2024-05-01',
+        expectedHarvest: '2024-08-15',
+        notes: '适合制作玉米深加工产品'
+      }
+    ];
+  }
+
+  private async loadCropData(): Promise<void> {
+    this.isLoading = true;
+    try {
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+      this.lastRefresh = new Date().toLocaleString();
+    } catch (error) {
+      console.error('加载作物数据失败:', error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private getFilteredCrops(): Crop[] {
+    return this.crops.filter(crop => {
+      const matchesSearch = crop.name.includes(this.searchText) || 
+                           crop.variety.includes(this.searchText) ||
+                           crop.location.includes(this.searchText);
+      const matchesStatus = this.filterStatus === 'all' || crop.status === this.filterStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }
+
+  private getStatusColor(status: string): string {
+    switch (status) {
+      case 'healthy': return '#52C41A';
+      case 'attention': return '#FAAD14';
+      case 'critical': return '#FF4D4F';
+      default: return '#8A8A8A';
+    }
+  }
+
+  private getStatusText(status: string): string {
+    switch (status) {
+      case 'healthy': return '健康';
+      case 'attention': return '需关注';
+      case 'critical': return '异常';
+      default: return '未知';
+    }
+  }
+
+  build() {
+    Column() {
+      this.HeaderSection()
+      
+      if (this.currentTab === 0) {
+        this.CropManagementTab()
+      } else {
+        this.PlantingPlanTab()
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('#FAFAFA')
+  }
+
+  @Builder
+  HeaderSection() {
+    Column() {
+      Row() {
+        Text('作物管理')
+          .fontSize(24)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1F2329')
+          .layoutWeight(1)
+
+        Button() {
+          Row({ space: 6 }) {
+            if (this.isLoading) {
+              LoadingProgress()
+                .width(16)
+                .height(16)
+                .color('#FFFFFF')
+            } else {
+              Text('🔄')
+                .fontSize(14)
+            }
+            Text('刷新')
+              .fontSize(14)
+              .fontColor('#FFFFFF')
+          }
+        }
+        .backgroundColor('#1890FF')
+        .borderRadius(20)
+        .height(36)
+        .padding({ left: 16, right: 16 })
+        .onClick(() => this.loadCropData())
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 16 })
+
+      Text(`最后更新：${this.lastRefresh}`)
+        .fontSize(12)
+        .fontColor('#8A8A8A')
+        .alignSelf(ItemAlign.Start)
+        .margin({ left: 16, top: 4 })
+
+      Row() {
+        this.TabButton('作物监控', 0)
+        this.TabButton('种植计划', 1)
+      }
+      .width('100%')
+      .margin({ top: 16 })
+      .padding({ left: 16, right: 16 })
+    }
+    .backgroundColor('#FFFFFF')
+    .shadow({
+      radius: 8,
+      color: '#00000010',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+
+  @Builder
+  TabButton(text: string, index: number) {
+    Button(text)
+      .fontSize(16)
+      .fontColor(this.currentTab === index ? '#1890FF' : '#666666')
+      .backgroundColor(this.currentTab === index ? '#E6F7FF' : 'transparent')
+      .border({ width: this.currentTab === index ? 2 : 0, color: '#1890FF' })
+      .borderRadius(8)
+      .layoutWeight(1)
+      .margin({ left: index > 0 ? 8 : 0 })
+      .onClick(() => {
+        this.currentTab = index;
+      })
+  }
+
+  @Builder
+  CropManagementTab() {
+    Column({ space: 16 }) {
+      this.SearchAndFilterSection()
+      this.CropStatsSection()
+      this.CropListSection()
+    }
+    .padding({ top: 16 })
+    .layoutWeight(1)
+  }
+
+  @Builder
+  SearchAndFilterSection() {
+    Column({ space: 12 }) {
+      Row({ space: 12 }) {
+        TextInput({ placeholder: '搜索作物名称、品种或位置...' })
+          .layoutWeight(1)
+          .onChange((value: string) => {
+            this.searchText = value;
+          })
+          .borderRadius(8)
+
+        Button('筛选')
+          .backgroundColor('#52C41A')
+          .borderRadius(8)
+      }
+
+      Row({ space: 8 }) {
+        Text('状态筛选：')
+          .fontSize(14)
+          .fontColor('#666666')
+
+        this.FilterChip('全部', 'all')
+        this.FilterChip('健康', 'healthy')
+        this.FilterChip('需关注', 'attention')
+        this.FilterChip('异常', 'critical')
+      }
+    }
+    .padding({ left: 16, right: 16 })
+  }
+
+  @Builder
+  FilterChip(text: string, value: string) {
+    Button(text)
+      .fontSize(12)
+      .fontColor(this.filterStatus === value ? '#FFFFFF' : '#666666')
+      .backgroundColor(this.filterStatus === value ? '#1890FF' : '#F5F5F5')
+      .borderRadius(16)
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .onClick(() => {
+        this.filterStatus = value;
+      })
+  }
+
+  @Builder
+  CropStatsSection() {
+    Row({ space: 12 }) {
+      this.StatsCard('总作物', this.crops.length.toString(), '🌾', '#1890FF')
+      this.StatsCard('健康状态', this.crops.filter(c => c.status === 'healthy').length.toString(), '✅', '#52C41A')
+      this.StatsCard('需关注', this.crops.filter(c => c.status === 'attention').length.toString(), '⚠️', '#FAAD14')
+      this.StatsCard('种植面积', `${this.crops.reduce((sum, c) => sum + c.area, 0).toFixed(1)}亩`, '📏', '#722ED1')
+    }
+    .padding({ left: 16, right: 16 })
+  }
+
+  @Builder
+  StatsCard(title: string, value: string, icon: string, color: string) {
+    Column({ space: 8 }) {
+      Text(icon)
+        .fontSize(24)
+
+      Text(value)
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(color)
+
+      Text(title)
+        .fontSize(12)
+        .fontColor('#666666')
+    }
+    .layoutWeight(1)
+    .height(100)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(12)
+    .justifyContent(FlexAlign.Center)
+    .shadow({
+      radius: 8,
+      color: '#00000010',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+
+  @Builder
+  CropListSection() {
+    Column() {
+      Row() {
+        Text('作物列表')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#1F2329')
+          .layoutWeight(1)
+
+        Button('+ 添加作物')
+          .fontSize(14)
+          .fontColor('#1890FF')
+          .backgroundColor('transparent')
+          .border({ width: 1, color: '#1890FF' })
+          .borderRadius(8)
+          .onClick(() => {
+            this.showAddDialog = true;
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 12 })
+
+      Scroll() {
+        Column({ space: 12 }) {
+          ForEach(this.getFilteredCrops(), (crop: Crop) => {
+            this.CropCard(crop)
+          })
+
+          if (this.getFilteredCrops().length === 0) {
+            this.EmptyState()
+          }
+        }
+        .padding({ left: 16, right: 16, bottom: 16 })
+      }
+      .layoutWeight(1)
+    }
+    .layoutWeight(1)
+  }
+
+  @Builder
+  CropCard(crop: Crop) {
+    Column({ space: 12 }) {
+      Row() {
+        Column({ space: 4 }) {
+          Row({ space: 8 }) {
+            Text(crop.name)
+              .fontSize(18)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1F2329')
+
+            Text(crop.variety)
+              .fontSize(14)
+              .fontColor('#666666')
+              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+              .backgroundColor('#F5F5F5')
+              .borderRadius(4)
+          }
+
+          Text(crop.location)
+            .fontSize(14)
+            .fontColor('#8A8A8A')
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+
+        Column({ space: 4 }) {
+          Text(this.getStatusText(crop.status))
+            .fontSize(12)
+            .fontColor('#FFFFFF')
+            .backgroundColor(this.getStatusColor(crop.status))
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(12)
+
+          Text(`${crop.area}亩`)
+            .fontSize(12)
+            .fontColor('#666666')
+        }
+        .alignItems(HorizontalAlign.End)
+      }
+
+      Row() {
+        Column({ space: 4 }) {
+          Text(`当前阶段：${crop.currentStage}`)
+            .fontSize(14)
+            .fontColor('#1F2329')
+
+          Progress({
+            value: crop.progress,
+            total: 100,
+            type: ProgressType.Linear
+          })
+          .width('100%')
+          .height(6)
+          .backgroundColor('#F5F5F5')
+          .color('#1890FF')
+
+          Text(`进度：${crop.progress}%`)
+            .fontSize(12)
+            .fontColor('#666666')
+        }
+        .layoutWeight(1)
+      }
+
+      Row({ space: 12 }) {
+        Text(`播种：${crop.plantingDate}`)
+          .fontSize(12)
+          .fontColor('#666666')
+
+        Text(`预计收获：${crop.expectedHarvestDate}`)
+          .fontSize(12)
+          .fontColor('#666666')
+
+        Text(`更新：${crop.lastUpdated}`)
+          .fontSize(12)
+          .fontColor('#8A8A8A')
+          .layoutWeight(1)
+          .textAlign(TextAlign.End)
+      }
+
+      Row({ space: 8 }) {
+        Button('查看详情')
+          .fontSize(12)
+          .fontColor('#1890FF')
+          .backgroundColor('transparent')
+          .border({ width: 1, color: '#1890FF' })
+          .borderRadius(6)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.selectedCrop = crop;
+          })
+
+        Button('编辑')
+          .fontSize(12)
+          .fontColor('#52C41A')
+          .backgroundColor('transparent')
+          .border({ width: 1, color: '#52C41A' })
+          .borderRadius(6)
+          .layoutWeight(1)
+
+        Button('记录')
+          .fontSize(12)
+          .fontColor('#FAAD14')
+          .backgroundColor('transparent')
+          .border({ width: 1, color: '#FAAD14' })
+          .borderRadius(6)
+          .layoutWeight(1)
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(12)
+    .shadow({
+      radius: 8,
+      color: '#00000010',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+
+  @Builder
+  PlantingPlanTab() {
+    Column({ space: 16 }) {
+      Row() {
+        Text('种植计划')
+          .fontSize(18)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#1F2329')
+          .layoutWeight(1)
+
+        Button('+ 新建计划')
+          .fontSize(14)
+          .fontColor('#FFFFFF')
+          .backgroundColor('#52C41A')
+          .borderRadius(8)
+          .onClick(() => {
+            this.showPlanDialog = true;
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 16 })
+
+      Scroll() {
+        Column({ space: 12 }) {
+          ForEach(this.plantingPlans, (plan: PlantingPlan) => {
+            this.PlanCard(plan)
+          })
+
+          if (this.plantingPlans.length === 0) {
+            this.EmptyPlanState()
+          }
+        }
+        .padding({ left: 16, right: 16, bottom: 16 })
+      }
+      .layoutWeight(1)
+    }
+    .layoutWeight(1)
+  }
+
+  @Builder
+  PlanCard(plan: PlantingPlan) {
+    Column({ space: 12 }) {
+      Row() {
+        Column({ space: 4 }) {
+          Text(`${plan.cropName} - ${plan.variety}`)
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1F2329')
+
+          Text(`面积：${plan.area}亩`)
+            .fontSize(14)
+            .fontColor('#666666')
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+
+        Text('计划中')
+          .fontSize(12)
+          .fontColor('#FFFFFF')
+          .backgroundColor('#1890FF')
+          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+          .borderRadius(12)
+      }
+
+      Row({ space: 16 }) {
+        Text(`计划播种：${plan.plannedDate}`)
+          .fontSize(14)
+          .fontColor('#666666')
+
+        Text(`预计收获：${plan.expectedHarvest}`)
+          .fontSize(14)
+          .fontColor('#666666')
+      }
+
+      if (plan.notes) {
+        Text(`备注：${plan.notes}`)
+          .fontSize(14)
+          .fontColor('#8A8A8A')
+          .padding(8)
+          .backgroundColor('#F8F9FA')
+          .borderRadius(6)
+      }
+
+      Row({ space: 8 }) {
+        Button('执行计划')
+          .fontSize(12)
+          .fontColor('#FFFFFF')
+          .backgroundColor('#52C41A')
+          .borderRadius(6)
+          .layoutWeight(1)
+
+        Button('编辑')
+          .fontSize(12)
+          .fontColor('#1890FF')
+          .backgroundColor('transparent')
+          .border({ width: 1, color: '#1890FF' })
+          .borderRadius(6)
+          .layoutWeight(1)
+
+        Button('删除')
+          .fontSize(12)
+          .fontColor('#FF4D4F')
+          .backgroundColor('transparent')
+          .border({ width: 1, color: '#FF4D4F' })
+          .borderRadius(6)
+          .layoutWeight(1)
+      }
+    }
+    .width('100%')
+    .padding(16)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(12)
+    .shadow({
+      radius: 8,
+      color: '#00000010',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+
+  @Builder
+  EmptyState() {
+    Column({ space: 12 }) {
+      Text('🌾')
+        .fontSize(48)
+
+      Text('暂无作物数据')
+        .fontSize(16)
+        .fontColor('#8A8A8A')
+
+      Text('点击"添加作物"开始记录您的种植信息')
+        .fontSize(14)
+        .fontColor('#999999')
+        .textAlign(TextAlign.Center)
+
+      Button('添加第一个作物')
+        .fontColor('#FFFFFF')
+        .backgroundColor('#1890FF')
+        .borderRadius(8)
+        .onClick(() => {
+          this.showAddDialog = true;
+        })
+    }
+    .width('100%')
+    .height(200)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(12)
+    .shadow({
+      radius: 8,
+      color: '#00000010',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+
+  @Builder
+  EmptyPlanState() {
+    Column({ space: 12 }) {
+      Text('📅')
+        .fontSize(48)
+
+      Text('暂无种植计划')
+        .fontSize(16)
+        .fontColor('#8A8A8A')
+
+      Text('制定您的种植计划，合理安排作物种植时间')
+        .fontSize(14)
+        .fontColor('#999999')
+        .textAlign(TextAlign.Center)
+
+      Button('创建种植计划')
+        .fontColor('#FFFFFF')
+        .backgroundColor('#52C41A')
+        .borderRadius(8)
+        .onClick(() => {
+          this.showPlanDialog = true;
+        })
+    }
+    .width('100%')
+    .height(200)
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor('#FFFFFF')
+    .borderRadius(12)
+    .shadow({
+      radius: 8,
+      color: '#00000010',
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+}
