@@ -30,48 +30,62 @@ struct Index {
 
   build() {
     Column() {
-      // 顶部标题栏
-      Row() {
-        Text('智慧农田监测系统')
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1F2329')
-      }
-      .width('100%')
-      .height(56)
-      .justifyContent(FlexAlign.Center)
-      .backgroundColor('#F5F5F5')
-
-      // 水平滚动菜单
-      Scroll() {
+      // 整合的顶部区域（标题+菜单）
+      Column() {
+        // 标题行
         Row() {
-          ForEach(this.menuItems, (item: MenuItem, index: number) => {
-            Column() {
-              Text(item.title)
-                .fontSize(14)
-                .fontColor(this.currentIndex === index ? '#007DFF' : '#8A8A8A')
-                .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-            }
-            .backgroundColor(this.currentIndex === index ? '#E6F7FF' : '#FFFFFF')
-            .borderRadius(20)
-            .margin({ left: 8, right: 8 })
-            .onClick(() => {
-              this.currentIndex = index;
-            })
-          })
+          Text('智慧农田监测系统')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1F2329')
         }
-        .padding({ left: 16, right: 16 })
+        .width('100%')
+        .height(48)
+        .justifyContent(FlexAlign.Center)
+
+        // 菜单栏
+        Scroll() {
+          Row() {
+            ForEach(this.menuItems, (item: MenuItem, index: number) => {
+              Column() {
+                Text(item.title)
+                  .fontSize(14)
+                  .fontColor(this.currentIndex === index ? '#FFFFFF' : '#666666')
+                  .fontWeight(this.currentIndex === index ? FontWeight.Medium : FontWeight.Normal)
+              }
+              .height(36)
+              .padding({ left: 20, right: 20 })
+              .backgroundColor(this.currentIndex === index ? '#1890FF' : 'transparent')
+              .borderRadius(18)
+              .justifyContent(FlexAlign.Center)
+              .onClick(() => {
+                this.currentIndex = index;
+              })
+              .margin({ right: 8 })
+            })
+          }
+          .padding({ left: 12, right: 12, bottom: 8 })
+        }
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off)
+        .width('100%')
+        .height(52)
       }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
       .width('100%')
-      .height(60)
+      .backgroundColor('#FFFFFF')
+      .shadow({
+        radius: 8,
+        color: '#00000010',
+        offsetX: 0,
+        offsetY: 2
+      })
 
       // 内容区域
       Column() {
         this.RenderCurrentPage()
       }
       .layoutWeight(1)
+      .width('100%')
     }
     .width('100%')
     .height('100%')

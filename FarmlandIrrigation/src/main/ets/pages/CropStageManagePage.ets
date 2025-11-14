@@ -53,6 +53,13 @@ export default struct CropStageManagePage {
   @State isLoading: boolean = false;
   @State lastRefresh: string = '';
 
+  // 新建计划表单数据
+  @State newPlanCropName: string = '';
+  @State newPlanVariety: string = '';
+  @State newPlanArea: string = '';
+  @State newPlanDate: string = '';
+  @State newPlanNotes: string = '';
+
   // 作物类型配置
   private readonly cropTypes: CropType[]  = [
     {
@@ -215,14 +222,130 @@ export default struct CropStageManagePage {
     }
   }
 
+  // 执行种植计划
+  private executePlan(plan: PlantingPlan): void {
+    console.log(`执行种植计划: ${plan.cropName} - ${plan.variety}`);
+    // 【功能点】执行种植计划
+    // 将计划转换为实际的作物记录
+    const newCrop: Crop = {
+      id: `crop_${Date.now()}`,
+      name: plan.cropName,
+      variety: plan.variety,
+      plantingDate: plan.plannedDate,
+      expectedHarvestDate: plan.expectedHarvest,
+      currentStage: '播种',
+      progress: 0,
+      area: plan.area,
+      status: 'healthy',
+      location: '待分配',
+      lastUpdated: new Date().toLocaleString()
+    };
+
+    this.crops.push(newCrop);
+
+    // 从计划列表中移除
+    const index = this.plantingPlans.findIndex(p => p.id === plan.id);
+    if (index > -1) {
+      this.plantingPlans.splice(index, 1);
+    }
+
+    console.log('计划已执行，作物已添加到作物列表');
+  }
+
+  // 删除种植计划
+  private deletePlan(planId: string): void {
+    const index = this.plantingPlans.findIndex(p => p.id === planId);
+    if (index > -1) {
+      this.plantingPlans.splice(index, 1);
+      console.log(`已删除种植计划: ${planId}`);
+    }
+  }
+
+  // 添加新的种植计划
+  private addNewPlan(): void {
+    if (!this.newPlanCropName || !this.newPlanVariety || !this.newPlanArea || !this.newPlanDate) {
+      console.log('请填写所有必填项');
+      return;
+    }
+
+    const area = parseFloat(this.newPlanArea);
+    if (isNaN(area) || area <= 0) {
+      console.log('请输入有效的面积');
+      return;
+    }
+
+    // 计算预期收获日期
+    const expectedHarvest = this.calculateHarvestDate(this.newPlanCropName, this.newPlanDate);
+
+    const newPlan: PlantingPlan = {
+      id: `plan_${Date.now()}`,
+      cropName: this.newPlanCropName,
+      variety: this.newPlanVariety,
+      area: area,
+      plannedDate: this.newPlanDate,
+      expectedHarvest: expectedHarvest,
+      notes: this.newPlanNotes
+    };
+
+    this.plantingPlans.push(newPlan);
+    this.showPlanDialog = false;
+    this.resetPlanForm();
+
+    console.log('新增种植计划成功:', newPlan);
+  }
+
+  // 计算预期收获日期
+  private calculateHarvestDate(cropName: string, plantingDate: string): string {
+    const crop = this.cropTypes.find(c => c.name === cropName);
+    if (!crop) {
+      return '';
+    }
+
+    // 验证日期格式并检查有效性
+    if (!plantingDate || plantingDate.trim() === '') {
+      return '';
+    }
+
+    const date = new Date(plantingDate);
+
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    date.setDate(date.getDate() + crop.totalDays);
+
+    return date.toISOString().split('T')[0];
+  }
+
+  // 重置计划表单
+  private resetPlanForm(): void {
+    this.newPlanCropName = '';
+    this.newPlanVariety = '';
+    this.newPlanArea = '';
+    this.newPlanDate = '';
+    this.newPlanNotes = '';
+  }
+
+  // 获取当前选择作物的品种列表
+  private getCurrentVarieties(): string[] {
+    const crop = this.cropTypes.find(c => c.name === this.newPlanCropName);
+    return crop ? crop.varieties : [];
+  }
+
   build() {
     Column() {
       this.HeaderSection()
-      
+
       if (this.currentTab === 0) {
         this.CropManagementTab()
       } else {
         this.PlantingPlanTab()
+      }
+
+      // 新建种植计划对话框
+      if (this.showPlanDialog) {
+        this.PlanDialogOverlay()
       }
     }
     .width('100%')
@@ -535,6 +658,13 @@ export default struct CropStageManagePage {
           .border({ width: 1, color: '#52C41A' })
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】编辑作物信息
+            // 应打开编辑对话框，允许修改作物的各项信息
+            console.log(`编辑作物: ${crop.name} (ID: ${crop.id})`);
+            this.selectedCrop = crop;
+            this.showAddDialog = true;
+          })
 
         Button('记录')
           .fontSize(12)
@@ -543,6 +673,13 @@ export default struct CropStageManagePage {
           .border({ width: 1, color: '#FAAD14' })
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】记录作物生长信息
+            // 应打开记录对话框，记录浇水、施肥、病虫害等信息
+            console.log(`记录作物生长信息: ${crop.name} (ID: ${crop.id})`);
+            this.selectedCrop = crop;
+            // TODO: 打开生长记录对话框
+          })
       }
     }
     .width('100%')
@@ -647,6 +784,12 @@ export default struct CropStageManagePage {
           .backgroundColor('#52C41A')
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】执行种植计划
+            // 将计划转换为实际作物记录并切换到作物监控标签
+            this.executePlan(plan);
+            this.currentTab = 0;
+          })
 
         Button('编辑')
           .fontSize(12)
@@ -655,6 +798,12 @@ export default struct CropStageManagePage {
           .border({ width: 1, color: '#1890FF' })
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】编辑种植计划
+            // 应打开编辑对话框，允许修改计划信息
+            console.log(`编辑种植计划: ${plan.cropName} (ID: ${plan.id})`);
+            this.showPlanDialog = true;
+          })
 
         Button('删除')
           .fontSize(12)
@@ -663,6 +812,11 @@ export default struct CropStageManagePage {
           .border({ width: 1, color: '#FF4D4F' })
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】删除种植计划
+            console.log(`删除种植计划: ${plan.cropName} (ID: ${plan.id})`);
+            this.deletePlan(plan.id);
+          })
       }
     }
     .width('100%')
@@ -747,5 +901,217 @@ export default struct CropStageManagePage {
       offsetX: 0,
       offsetY: 2
     })
+  }
+
+  @Builder
+  PlanDialogOverlay() {
+    Stack() {
+      // 半透明背景
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0, 0, 0, 0.5)')
+        .onClick(() => {
+          this.showPlanDialog = false;
+          this.resetPlanForm();
+        })
+
+      // 对话框内容
+      Column({ space: 20 }) {
+        // 标题栏
+        Row() {
+          Text('新建种植计划')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1F2329')
+            .layoutWeight(1)
+
+          Text('✕')
+            .fontSize(24)
+            .fontColor('#666666')
+            .onClick(() => {
+              this.showPlanDialog = false;
+              this.resetPlanForm();
+            })
+        }
+        .width('100%')
+
+        Scroll() {
+          Column({ space: 16 }) {
+            // 作物类型选择
+            Column({ space: 8 }) {
+              Row() {
+                Text('作物类型')
+                  .fontSize(14)
+                  .fontColor('#333333')
+                Text('*')
+                  .fontSize(14)
+                  .fontColor('#FF4D4F')
+              }
+
+              Row({ space: 8 }) {
+                ForEach(this.cropTypes, (crop: CropType) => {
+                  Button(crop.name)
+                    .fontSize(14)
+                    .fontColor(this.newPlanCropName === crop.name ? '#FFFFFF' : '#666666')
+                    .backgroundColor(this.newPlanCropName === crop.name ? '#52C41A' : '#F5F5F5')
+                    .borderRadius(8)
+                    .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+                    .onClick(() => {
+                      this.newPlanCropName = crop.name;
+                      this.newPlanVariety = ''; // 重置品种选择
+                    })
+                })
+              }
+            }
+            .alignItems(HorizontalAlign.Start)
+
+            // 品种选择
+            if (this.newPlanCropName) {
+              Column({ space: 8 }) {
+                Row() {
+                  Text('品种')
+                    .fontSize(14)
+                    .fontColor('#333333')
+                  Text('*')
+                    .fontSize(14)
+                    .fontColor('#FF4D4F')
+                }
+
+                Row({ space: 8 }) {
+                  ForEach(this.getCurrentVarieties(), (variety: string) => {
+                    Button(variety)
+                      .fontSize(14)
+                      .fontColor(this.newPlanVariety === variety ? '#FFFFFF' : '#666666')
+                      .backgroundColor(this.newPlanVariety === variety ? '#52C41A' : '#F5F5F5')
+                      .borderRadius(8)
+                      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+                      .onClick(() => {
+                        this.newPlanVariety = variety;
+                      })
+                  })
+                }
+              }
+              .alignItems(HorizontalAlign.Start)
+            }
+
+            // 种植面积
+            Column({ space: 8 }) {
+              Row() {
+                Text('种植面积（亩）')
+                  .fontSize(14)
+                  .fontColor('#333333')
+                Text('*')
+                  .fontSize(14)
+                  .fontColor('#FF4D4F')
+              }
+
+              TextInput({ placeholder: '请输入种植面积', text: this.newPlanArea })
+                .type(InputType.Number)
+                .onChange((value: string) => {
+                  this.newPlanArea = value;
+                })
+                .borderRadius(8)
+            }
+            .alignItems(HorizontalAlign.Start)
+
+            // 计划播种日期
+            Column({ space: 8 }) {
+              Row() {
+                Text('计划播种日期')
+                  .fontSize(14)
+                  .fontColor('#333333')
+                Text('*')
+                  .fontSize(14)
+                  .fontColor('#FF4D4F')
+              }
+
+              TextInput({ placeholder: '格式：YYYY-MM-DD', text: this.newPlanDate })
+                .type(InputType.Normal)
+                .onChange((value: string) => {
+                  this.newPlanDate = value;
+                })
+                .borderRadius(8)
+            }
+            .alignItems(HorizontalAlign.Start)
+
+            // 预期收获日期（自动计算）
+            if (this.newPlanCropName && this.newPlanDate) {
+              Column({ space: 8 }) {
+                Text('预期收获日期')
+                  .fontSize(14)
+                  .fontColor('#333333')
+
+                Text(this.calculateHarvestDate(this.newPlanCropName, this.newPlanDate) || '请输入有效的日期格式 (YYYY-MM-DD)')
+                  .fontSize(16)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(this.calculateHarvestDate(this.newPlanCropName, this.newPlanDate) ? '#52C41A' : '#FF4D4F')
+                  .padding(12)
+                  .backgroundColor(this.calculateHarvestDate(this.newPlanCropName, this.newPlanDate) ? '#F0F9F0' : '#FFF1F0')
+                  .borderRadius(8)
+                  .width('100%')
+              }
+              .alignItems(HorizontalAlign.Start)
+            }
+
+            // 备注
+            Column({ space: 8 }) {
+              Text('备注')
+                .fontSize(14)
+                .fontColor('#333333')
+
+              TextArea({ placeholder: '输入种植计划备注信息...', text: this.newPlanNotes })
+                .height(80)
+                .onChange((value: string) => {
+                  this.newPlanNotes = value;
+                })
+                .borderRadius(8)
+            }
+            .alignItems(HorizontalAlign.Start)
+          }
+          .padding({ left: 4, right: 4 })
+        }
+        .layoutWeight(1)
+
+        // 底部按钮
+        Row({ space: 12 }) {
+          Button('取消')
+            .fontSize(16)
+            .fontColor('#666666')
+            .backgroundColor('#F5F5F5')
+            .borderRadius(8)
+            .layoutWeight(1)
+            .onClick(() => {
+              this.showPlanDialog = false;
+              this.resetPlanForm();
+            })
+
+          Button('确认添加')
+            .fontSize(16)
+            .fontColor('#FFFFFF')
+            .backgroundColor('#52C41A')
+            .borderRadius(8)
+            .layoutWeight(1)
+            .onClick(() => {
+              this.addNewPlan();
+            })
+        }
+      }
+      .width('90%')
+      .height('80%')
+      .padding(16)
+      .backgroundColor('#FFFFFF')
+      .borderRadius(16)
+      .shadow({
+        radius: 20,
+        color: '#00000020',
+        offsetX: 0,
+        offsetY: 4
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .position({ x: 0, y: 0 })
+    .zIndex(1000)
   }
 }

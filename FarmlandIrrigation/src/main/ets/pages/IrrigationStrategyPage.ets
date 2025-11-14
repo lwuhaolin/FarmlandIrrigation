@@ -154,7 +154,7 @@ export default struct IrrigationStrategyPage {
         flowRate: this.formData.flowRate,
         interval: this.formData.interval
       },
-      isActive: false,
+      isActive: this.editingStrategy?.isActive || false,
       createdTime: this.editingStrategy?.createdTime || Date.now(),
       lastModified: Date.now()
     };
@@ -169,6 +169,41 @@ export default struct IrrigationStrategyPage {
     }
 
     this.closeDialog();
+  }
+
+  // 切换策略激活状态
+  private toggleStrategyActive(strategy: IrrigationStrategy): void {
+    const index = this.strategies.findIndex(s => s.id === strategy.id);
+    if (index !== -1) {
+      this.strategies[index].isActive = !this.strategies[index].isActive;
+      this.strategies[index].lastModified = Date.now();
+      console.log(`策略 "${strategy.name}" 已${this.strategies[index].isActive ? '启动' : '停止'}`);
+    }
+  }
+
+  // 打开编辑对话框
+  private openEditDialog(strategy: IrrigationStrategy): void {
+    this.editingStrategy = strategy;
+    this.formData = {
+      name: strategy.name,
+      fieldAreaId: strategy.fieldAreaId,
+      minMoisture: strategy.thresholds.minMoisture,
+      maxMoisture: strategy.thresholds.maxMoisture,
+      duration: strategy.irrigationSettings.duration,
+      flowRate: strategy.irrigationSettings.flowRate,
+      interval: strategy.irrigationSettings.interval
+    };
+    this.showAddDialog = true;
+  }
+
+  // 删除策略
+  private deleteStrategy(strategyId: string): void {
+    const index = this.strategies.findIndex(s => s.id === strategyId);
+    if (index !== -1) {
+      const strategyName = this.strategies[index].name;
+      this.strategies.splice(index, 1);
+      console.log(`策略 "${strategyName}" 已删除`);
+    }
   }
 
   build() {
@@ -301,6 +336,10 @@ export default struct IrrigationStrategyPage {
           .backgroundColor(strategy.isActive ? '#FF4D4F' : '#52C41A')
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】切换灌溉策略的激活状态
+            this.toggleStrategyActive(strategy);
+          })
 
         Button('编辑')
           .fontSize(12)
@@ -309,6 +348,10 @@ export default struct IrrigationStrategyPage {
           .border({ width: 1, color: '#1890FF' })
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】编辑灌溉策略
+            this.openEditDialog(strategy);
+          })
 
         Button('删除')
           .fontSize(12)
@@ -317,6 +360,10 @@ export default struct IrrigationStrategyPage {
           .border({ width: 1, color: '#FF4D4F' })
           .borderRadius(6)
           .layoutWeight(1)
+          .onClick(() => {
+            // 【功能点】删除灌溉策略
+            this.deleteStrategy(strategy.id);
+          })
       }
     }
     .width('100%')
@@ -365,7 +412,7 @@ export default struct IrrigationStrategyPage {
       Column() {
         // 标题栏
         Row() {
-          Text('🚰 新建灌溉策略')
+          Text(this.editingStrategy ? '🚰 编辑灌溉策略' : '🚰 新建灌溉策略')
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
             .fontColor('#1F2329')
@@ -607,7 +654,7 @@ export default struct IrrigationStrategyPage {
             .layoutWeight(1)
             .height(48)
 
-          Button('保存策略')
+          Button(this.editingStrategy ? '保存修改' : '保存策略')
             .onClick(() => this.saveStrategy())
             .backgroundColor('#1890FF')
             .fontColor('#FFFFFF')
