@@ -87,7 +87,7 @@ export default struct HistoryDataPage {
     if (this.historyData.length === 0) return;
 
     const dataKey = this.dataKeys[this.selectedTab] as keyof HistoryDataPoint;
-    const chartWidth = 280; // 设定固定宽度与Canvas对应
+    const chartWidth = 280; // 图表宽度
     const chartHeight = 180;
     const padding = 20;
 
@@ -295,44 +295,86 @@ export default struct HistoryDataPage {
                 .margin(32)
                 .color('#4CAF50')
             } else {
-              // 改进的折线图实现
-              Stack() {
-                // 背景网格
-                Column() {
-                  ForEach([0, 1, 2, 3, 4], (item: number) => {
-                    Divider()
-                      .strokeWidth(1)
-                      .color('#E8E8E8')
-                      .margin({ top: item === 0 ? 0 : 36 })
-                  })
-                }
-                .width(280)
-                .height(180)
-                .alignItems(HorizontalAlign.Start)
-
-                // Canvas图表
-                if (this.chartData.length > 0) {
-                  Stack() {
-                    Canvas(this.drawChart.bind(this))
-                      .width(280)
-                      .height(180)
-                      .backgroundColor(Color.Transparent)
-                      .onReady(() => {
-                        // Canvas准备就绪，触发绘制
-                        console.log('Canvas ready, data points:', this.chartData.length)
-                      })
+              // 原生组件实现的趋势图
+              Column({ space: 12 }) {
+                // 图表区域
+                Stack() {
+                  // 背景网格线
+                  Column() {
+                    ForEach([0, 1, 2, 3, 4], (item: number) => {
+                      Divider()
+                        .strokeWidth(1)
+                        .color('#E8E8E8')
+                        .margin({ top: item === 0 ? 0 : 36 })
+                    })
                   }
-                  .width(280)
+                  .width('100%')
                   .height(180)
+                  .alignItems(HorizontalAlign.Start)
+
+                  // 数据可视化层
+                  if (this.chartData.length > 0) {
+                    Row() {
+                      ForEach(this.chartData, (point: ChartPoint, index: number) => {
+                        Stack() {
+                          // 垂直参考线（从底部到数据点）
+                          Column()
+                            .width(2)
+                            .height(`${((180 - point.y) / 180 * 100)}%`)
+                            .backgroundColor('rgba(76, 175, 80, 0.2)')
+                            .position({ x: '50%', y: `${(point.y / 180 * 100)}%` })
+                            .translate({ x: '-50%' })
+
+                          // 数据点圆圈
+                          Column() {
+                            // 外圈（白色边框）
+                            Circle({ width: 12, height: 12 })
+                              .fill('#FFFFFF')
+                              .border({ width: 2, color: '#4CAF50' })
+
+                            // 数值标签
+                            Text(`${point.value.toFixed(1)}`)
+                              .fontSize(10)
+                              .fontColor('#4CAF50')
+                              .fontWeight(FontWeight.Bold)
+                              .backgroundColor('#FFFFFF')
+                              .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+                              .borderRadius(4)
+                              .border({ width: 1, color: '#4CAF50' })
+                              .margin({ top: 4 })
+                              .shadow({ radius: 2, color: '#00000020', offsetY: 1 })
+                          }
+                          .alignItems(HorizontalAlign.Center)
+                          .position({ x: '50%', y: `${(point.y / 180 * 100)}%` })
+                          .translate({ x: '-50%', y: '-50%' })
+
+                          // 底部时间标签
+                          Text(point.time)
+                            .fontSize(9)
+                            .fontColor('#999')
+                            .maxLines(1)
+                            .textOverflow({ overflow: TextOverflow.Ellipsis })
+                            .width('100%')
+                            .textAlign(TextAlign.Center)
+                            .position({ x: 0, y: '100%' })
+                            .margin({ top: 8 })
+                        }
+                        .layoutWeight(1)
+                        .height(180)
+                      })
+                    }
+                    .width('100%')
+                    .height(180)
+                    .padding({ left: 10, right: 10 })
+                  }
                 }
+                .width('100%')
+                .height(220)
+                .padding({ top: 16, left: 8, right: 8, bottom: 32 })
+                .backgroundColor('#FAFAFA')
+                .borderRadius(12)
+                .border({ width: 1, color: '#E8E8E8' })
               }
-              .width('100%')
-              .height(220)
-              .padding(16)
-              .backgroundColor('#FAFAFA')
-              .borderRadius(12)
-              .border({ width: 1, color: '#E8E8E8' })
-              // .justifyContent(FlexAlign.Center)
 
               // 数据统计信息
               Column() {
@@ -507,93 +549,5 @@ export default struct HistoryDataPage {
     .width('100%')
     .height('100%')
     .backgroundColor('#F0F0F0')
-  }
-
-  // 绘制折线图
-  private drawChart(context: CanvasRenderingContext2D) {
-    if (this.chartData.length === 0) return;
-
-    const chartWidth = 280;
-    const chartHeight = 180;
-
-    // 清空画布
-    context.clearRect(0, 0, chartWidth, chartHeight);
-
-    // 绘制渐变背景区域
-    context.save();
-    context.beginPath();
-    context.moveTo(this.chartData[0].x, chartHeight - 20);
-
-    // 绘制到每个数据点
-    this.chartData.forEach(point => {
-      context.lineTo(point.x, point.y);
-    });
-
-    // 完成底部区域
-    context.lineTo(this.chartData[this.chartData.length - 1].x, chartHeight - 20);
-    context.closePath();
-
-    // 创建渐变
-    const gradient = context.createLinearGradient(0, 0, 0, chartHeight);
-    gradient.addColorStop(0, 'rgba(76, 175, 80, 0.3)');
-    gradient.addColorStop(1, 'rgba(76, 175, 80, 0.05)');
-    context.fillStyle = gradient;
-    context.fill();
-    context.restore();
-
-    // 绘制主折线
-    context.save();
-    context.beginPath();
-    context.strokeStyle = '#4CAF50';
-    context.lineWidth = 3;
-    context.lineJoin = 'round';
-    context.lineCap = 'round';
-
-    this.chartData.forEach((point, index) => {
-      if (index === 0) {
-        context.moveTo(point.x, point.y);
-      } else {
-        context.lineTo(point.x, point.y);
-      }
-    });
-
-    context.stroke();
-    context.restore();
-
-    // 绘制数据点
-    this.chartData.forEach(point => {
-      // 外圈（白色边框）
-      context.save();
-      context.beginPath();
-      context.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-      context.fillStyle = '#FFFFFF';
-      context.fill();
-      context.restore();
-
-      // 内圈（绿色）
-      context.save();
-      context.beginPath();
-      context.arc(point.x, point.y, 4, 0, 2 * Math.PI);
-      context.fillStyle = '#4CAF50';
-      context.fill();
-      context.restore();
-    });
-
-    // 绘制时间标签（仅显示首尾）
-    context.save();
-    context.fillStyle = '#999';
-    context.font = '10px sans-serif';
-
-    // 第一个标签
-    if (this.chartData.length > 0) {
-      const firstPoint = this.chartData[0];
-      context.fillText(firstPoint.time, firstPoint.x - 15, chartHeight - 5);
-
-      // 最后一个标签
-      const lastPoint = this.chartData[this.chartData.length - 1];
-      context.fillText(lastPoint.time, lastPoint.x - 15, chartHeight - 5);
-    }
-
-    context.restore();
   }
 }
